@@ -150,7 +150,7 @@ void showDriveInfo(const char &drive_name) {
             (PULARGE_INTEGER) &TotalNumberOfBytes,     // bytes on disk
             (PULARGE_INTEGER) &TotalNumberOfFreeBytes  // free bytes on disk
     );
-
+//    Dont work properly
     if (GetDiskFreeSpaceFlag) {
         cout << "Total number of bytes on a disk that are available to the user who is "
                 "associated with the calling thread = " << TotalNumberOfBytes << endl;
@@ -162,6 +162,27 @@ void showDriveInfo(const char &drive_name) {
 
 }
 
+void createDir(const string &path) {
+    LPCSTR PathName = path.c_str();
+    BOOL t = CreateDirectoryA(
+            PathName,
+            nullptr //  If lpSecurityAttributes is NULL, the directory gets a default security descriptor
+    );
+    if (!t) {
+        cout << "Error while creating folder in " + path << endl;
+    }
+}
+
+void removeDir(const string &path) {
+    LPCSTR PathName = path.c_str();
+    BOOL t = RemoveDirectoryA(
+            PathName //  If lpSecurityAttributes is NULL, the directory gets a default security descriptor
+    );
+    if (!t) {
+        cout << "Error while deleting folder in " + path << endl;
+    }
+}
+
 int main() {
-    showDriveWithMenu();
+
 }
