@@ -1,7 +1,7 @@
 #include <iostream>
 #include <windows.h>
 #include <vector>
-
+#include <map>
 using namespace std;
 
 void showDriveInfo(const char &drive_name);
@@ -173,6 +173,22 @@ void createDir(const string &path) {
     }
 }
 
+void createFileWrapper(string file_name) {
+
+    HANDLE new_handle = CreateFileA(
+            file_name.c_str(),              // file name
+            GENERIC_READ | GENERIC_WRITE,   //DesiredAccess
+            0,                              // share access
+            nullptr,                        //SecurityAttributes
+            CREATE_ALWAYS,                  //CreationDisposition
+            FILE_ATTRIBUTE_NORMAL,          //FlagsAndAttributes
+            nullptr
+    );
+    cout << "Created new file in " << file_name << endl;
+    cout << "Handle address is " << new_handle << endl;
+
+}
+
 void removeDir(const string &path) {
     LPCSTR PathName = path.c_str();
     BOOL t = RemoveDirectoryA(
@@ -183,6 +199,66 @@ void removeDir(const string &path) {
     }
 }
 
-int main() {
+void copyFileWrapper(const string &src_name, const string &dst_name) {
+    BOOL t = CopyFile(src_name.c_str(), dst_name.c_str(), FALSE); // func overwrites file if it already exist
+    if (!t) {
+        cout << "Error while copying file from " << src_name << " to " << dst_name << endl;
+    }
+}
 
+void getFileAttr(const string &file) {
+    const map<DWORD, string> fileAttributeConstants = {
+            {FILE_ATTRIBUTE_ARCHIVE, "File  is an archive file or directory."
+            },
+            {FILE_ATTRIBUTE_COMPRESSED, "File or directory is compressed."
+                                        "All of the data in the file is compressed."
+            },
+            {FILE_ATTRIBUTE_DEVICE, "This value is reserved for system use."},
+            {FILE_ATTRIBUTE_DIRECTORY,"The handle that identifies a directory." },
+            {FILE_ATTRIBUTE_ENCRYPTED, "The file is encrypted. "
+                                       "For a file, all data streams in the file are encrypted."
+            },
+            {FILE_ATTRIBUTE_NORMAL, "The file that does not have other attributes set."},
+            {FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, "The file is not to be indexed by the content indexing service."},
+            {FILE_ATTRIBUTE_READONLY,"The file is read-only." },
+            {FILE_ATTRIBUTE_REPARSE_POINT, "The file has an associated reparse point, or a file that is a symbolic link."},
+            {FILE_ATTRIBUTE_SPARSE_FILE, "The file is a sparse file."},
+            {FILE_ATTRIBUTE_SYSTEM, "The file that the operating system uses a part of, or uses exclusively."},
+            {FILE_ATTRIBUTE_TEMPORARY, "A file that is being used for temporary storage."},
+    };
+
+    DWORD t = GetFileAttributesA(file.c_str());
+    if (t != INVALID_FILE_ATTRIBUTES) {
+        cout << "Error while getting attributes from file " << file << endl;
+    }
+    //cout << "0x" << hex << t << endl;
+    cout << "The file has following attributes: " << endl;
+    for (auto &constant : fileAttributeConstants){
+        if( (constant.first & t) == constant.first ){
+            cout << constant.second << endl;
+        }
+    }
+
+
+
+
+}
+
+void moveFileWrapper(const string &src_name, const string &dst_name) {
+    char choice;
+    BOOL t = MoveFile(src_name.c_str(), dst_name.c_str()); // func overwrites file if it already exist
+    if (GetLastError() == 183) {
+        cout << "File with that name already exist in destination directory. Print 'y' to overwrite it" << endl;
+        cin >> choice;
+        if (choice == 'y') {
+            t = MoveFileEx(src_name.c_str(), dst_name.c_str(), MOVEFILE_REPLACE_EXISTING);
+        }
+    }
+    if (!t) {
+        cout << "Error while moving file from " << src_name << " to " << dst_name << endl;
+    }
+}
+
+int main() {
+    getFileAttr("../baka.txt");
 }
