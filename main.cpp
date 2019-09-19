@@ -69,7 +69,16 @@ string getDrives() {
     return disks_names;
 }
 
-void showDriveWithMenu() {
+void getDrivesM(){
+
+    cout << "Available disk drives :" << endl;
+    for (auto a: getDrives()){
+        cout << a << " ";
+    }
+    cout << endl;
+
+}
+void showDriveInfoM() {
     cout << "Select one of the presented discs:" << endl;
     string drivers = getDrives();
     for (auto i : drivers) {
@@ -219,7 +228,7 @@ void createDir(const string &path) {
     }
 }
 
-HANDLE createFileWrapper(string file_name) {
+HANDLE createFileWrapper(const string& file_name) {
 
     HANDLE new_handle = CreateFileA(
             file_name.c_str(),              // file name
@@ -246,7 +255,15 @@ void removeDir(const string &path) {
 }
 
 void copyFileWrapper(const string &src_name, const string &dst_name) {
-    BOOL t = CopyFile(src_name.c_str(), dst_name.c_str(), FALSE); // func overwrites file if it already exist
+    char choice;
+    BOOL t = CopyFile(src_name.c_str(), dst_name.c_str(), TRUE); // func overwrites file if it already exist
+    if (GetLastError() == 183) {
+        cout << "File with that name already exist in destination directory. Print 'y' to overwrite it" << endl;
+        cin >> choice;
+        if (choice == 'y') {
+            t = CopyFile(src_name.c_str(), dst_name.c_str(), FALSE);
+        }
+    }
     if (!t) {
         cout << "Error while copying file from " << src_name << " to " << dst_name << endl;
     }
@@ -301,11 +318,19 @@ void moveFileWrapper(const string &src_name, const string &dst_name) {
         cout << "Error while moving file from " << src_name << " to " << dst_name << endl;
     }
 }
-void setFileTimeWrapper(const HANDLE &file_handle){
 
-
+void setFileTimeWrapper(const HANDLE &file_handle) {
+    FILETIME filetime;
+    auto sys_time = new SYSTEMTIME();
+    GetSystemTime(sys_time);
+    SystemTimeToFileTime(sys_time, &filetime);
+    BOOL t = SetFileTime(file_handle, nullptr, &filetime, &filetime);
+    if (!t){
+        cout << "Error while setting file time " << endl;
+    }
 
 }
+
 void getFileInfoByHandle(const HANDLE &file_handle) {
 
 
@@ -338,8 +363,87 @@ void getFileInfoByHandle(const HANDLE &file_handle) {
 }
 
 int main() {
-    getFileAttr("../baka.txt");
-    auto handle = createFileWrapper("../tram.txt");
-    getFileInfoByHandle(handle);
+    //getFileAttr("../baka.txt");
+     bool work = true;
+    while (work){
+        cout << "Доступные действия:" << endl;
+        cout << "Введите 1, чтобы вывести список дисков." << endl;
+        cout << "Введите 2, чтобы вывести подробную информацию об определенном диске." << endl;
+        cout << "Введите 3, чтобы создать каталог." << endl;
+        cout << "Введите 4, чтобы удалить каталог." << endl;
+        cout << "Введите 5, чтобы создать файл." << endl;
+        cout << "Введите 6, чтобы копировать файл." << endl;
+        cout << "Введите 7, чтобы переместить файл." << endl;
+        cout << "Введите 8, чтобы вывести атрибуты файла." << endl;
+        cout << "Введите 9, чтобы задать атрибуты файла." << endl;
+        cout << "Введите 10, чтобы получить информацию о файле по его handle." << endl;
+        cout << "Введите 11, обновить время обращения в файлу и время последней записи в файл." << endl;
+        cout << "Чтобы выйти нажмите введите любую другую цифру" << endl;
+        unsigned i;
+        string path1;
+        string path2;
+        HANDLE tmp_handle;
+        cin >> i;
+        switch (i){
+            case 1 :
+                getDrivesM(); break;
+            case 2 :
+                showDriveInfoM(); break;
+            case 3 :
+                cout << "Введите полный путь до директории: " << endl;
+                cin >> path1;
+                createDir(path1);
+                break;
+            case 4 :
+                cout << "Введите полный путь до директории: " << endl;
+                cin >> path1;
+                removeDir(path1);
+            case 5 :
+                cout << "Введите полный путь до файла: " << endl;
+                cin >> path1;
+                tmp_handle = createFileWrapper(path1);
+                cout << "handle: " << tmp_handle << endl;
+                CloseHandle(tmp_handle);
+                break;
+            case 6 :
+                cout << "Введите полный путь до файла, который нужно скопировать: " << endl;
+                cin >> path1;
+                cout << "Введите путь, куда нужно скопировать файл(при необходимости его новое имя): " << endl;
+                cin >> path2;
+                copyFileWrapper(path1,path2);
+                break;
+            case 7 :
+                cout << "Введите полный путь до файла, который нужно переместить: " << endl;
+                cin >> path1;
+                cout << "Введите путь, куда нужно переместить файл(при необходимости его новое имя): " << endl;
+                cin >> path2;
+                moveFileWrapper(path1,path2);
+                break;
+            case 8 :
+                cout << "Введите полный путь до файла, для которого нужно вывести атрибуты: " << endl;
+                cin >> path1;
+                getFileAttr(path1);
+                break;
+            case 9 :
+                cout << "Введите полный путь до файла, которому нужно добавить атрибут: " << endl;
+                cin >> path1;
+                setFileAttr(path1);
+                break;
+            case 10 :
+                cout << "Введите handle файла, для которого нужно отобразить информацию: " << endl;
+                cin >> tmp_handle;
+                getFileInfoByHandle(tmp_handle);
+                break;
+            case 11 :
+                cout << "Введите handle файла, для которого нужно пометь время создания и последнего обращения на текущее: " << endl;
+                cin >> tmp_handle;
+                setFileTimeWrapper(tmp_handle);
+                break;
+            default:
+                work = false;
+                break;
+        }
+
+    }
 //    cout << GetLastError() << endl;
 }
