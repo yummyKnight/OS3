@@ -2,9 +2,55 @@
 #include <windows.h>
 #include <vector>
 #include <map>
+#include <sstream>
+#include <iomanip>
+
 using namespace std;
 
 void showDriveInfo(const char &drive_name);
+
+void attrDecoder(DWORD attr) {
+    const map<DWORD, string> fileAttributeConstants = {
+            {FILE_ATTRIBUTE_ARCHIVE,             "File  is an archive file or directory."
+            },
+            {FILE_ATTRIBUTE_COMPRESSED,          "File or directory is compressed."
+                                                 "All of the data in the file is compressed."
+            },
+            {FILE_ATTRIBUTE_DEVICE,              "This value is reserved for system use."},
+            {FILE_ATTRIBUTE_DIRECTORY,           "The handle that identifies a directory."},
+            {FILE_ATTRIBUTE_ENCRYPTED,           "The file is encrypted. "
+                                                 "For a file, all data streams in the file are encrypted."
+            },
+            {FILE_ATTRIBUTE_NORMAL,              "The file that does not have attributes set."},
+            {FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, "The file is not to be indexed by the content indexing service."},
+            {FILE_ATTRIBUTE_READONLY,            "The file is read-only."},
+            {FILE_ATTRIBUTE_REPARSE_POINT,       "The file has an associated reparse point, or a file that is a symbolic link."},
+            {FILE_ATTRIBUTE_SPARSE_FILE,         "The file is a sparse file."},
+            {FILE_ATTRIBUTE_SYSTEM,              "The file that the operating system uses a part of, or uses exclusively."},
+            {FILE_ATTRIBUTE_TEMPORARY,           "A file that is being used for temporary storage."},
+    };
+
+    cout << "The file has following attributes: " << endl;
+    for (auto &constant : fileAttributeConstants) {
+        if ((constant.first & attr) == constant.first) {
+            cout << constant.second << endl;
+        }
+    }
+}
+
+string SysTimeToStr(const SYSTEMTIME *systime) {
+
+    ostringstream ossMessage;
+    ossMessage << systime->wYear << "-"
+               << setw(2) << setfill('0') << systime->wMonth << "-"
+               << setw(2) << setfill('0') << systime->wDay << " "
+               << setw(2) << setfill('0') << systime->wHour << ":"
+               << setw(2) << setfill('0') << systime->wMinute << ":"
+               << setw(2) << setfill('0') << systime->wSecond << "."
+               << setw(3) << setfill('0') << systime->wMilliseconds;
+
+    return ossMessage.str();
+}
 
 string getDrives() {
     int n;
@@ -173,7 +219,7 @@ void createDir(const string &path) {
     }
 }
 
-void createFileWrapper(string file_name) {
+HANDLE createFileWrapper(string file_name) {
 
     HANDLE new_handle = CreateFileA(
             file_name.c_str(),              // file name
@@ -186,7 +232,7 @@ void createFileWrapper(string file_name) {
     );
     cout << "Created new file in " << file_name << endl;
     cout << "Handle address is " << new_handle << endl;
-
+    return new_handle;
 }
 
 void removeDir(const string &path) {
@@ -207,41 +253,38 @@ void copyFileWrapper(const string &src_name, const string &dst_name) {
 }
 
 void getFileAttr(const string &file) {
-    const map<DWORD, string> fileAttributeConstants = {
-            {FILE_ATTRIBUTE_ARCHIVE, "File  is an archive file or directory."
-            },
-            {FILE_ATTRIBUTE_COMPRESSED, "File or directory is compressed."
-                                        "All of the data in the file is compressed."
-            },
-            {FILE_ATTRIBUTE_DEVICE, "This value is reserved for system use."},
-            {FILE_ATTRIBUTE_DIRECTORY,"The handle that identifies a directory." },
-            {FILE_ATTRIBUTE_ENCRYPTED, "The file is encrypted. "
-                                       "For a file, all data streams in the file are encrypted."
-            },
-            {FILE_ATTRIBUTE_NORMAL, "The file that does not have other attributes set."},
-            {FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, "The file is not to be indexed by the content indexing service."},
-            {FILE_ATTRIBUTE_READONLY,"The file is read-only." },
-            {FILE_ATTRIBUTE_REPARSE_POINT, "The file has an associated reparse point, or a file that is a symbolic link."},
-            {FILE_ATTRIBUTE_SPARSE_FILE, "The file is a sparse file."},
-            {FILE_ATTRIBUTE_SYSTEM, "The file that the operating system uses a part of, or uses exclusively."},
-            {FILE_ATTRIBUTE_TEMPORARY, "A file that is being used for temporary storage."},
-    };
+    /* always return INVALID_FILE_ATTRIBUTES. idk why.
+     *
+     *
+     * */
 
     DWORD t = GetFileAttributesA(file.c_str());
     if (t != INVALID_FILE_ATTRIBUTES) {
         cout << "Error while getting attributes from file " << file << endl;
     }
+    attrDecoder(t);
+//    else {
     //cout << "0x" << hex << t << endl;
-    cout << "The file has following attributes: " << endl;
-    for (auto &constant : fileAttributeConstants){
-        if( (constant.first & t) == constant.first ){
-            cout << constant.second << endl;
-        }
+
+//    }
+}
+
+void setFileAttr(const string &file) {
+/* All attr:
+ * FILE_ATTRIBUTE_ARCHIVE
+FILE_ATTRIBUTE_HIDDEN
+FILE_ATTRIBUTE_NORMAL
+FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+FILE_ATTRIBUTE_OFFLINE
+FILE_ATTRIBUTE_READONLY
+FILE_ATTRIBUTE_SYSTEM
+FILE_ATTRIBUTE_TEMPORARY
+
+ * */
+    BOOL t = SetFileAttributesA(file.c_str(), FILE_ATTRIBUTE_NORMAL);
+    if (!t) {
+        cout << "Error while setting attributes to file " << file << endl;
     }
-
-
-
-
 }
 
 void moveFileWrapper(const string &src_name, const string &dst_name) {
@@ -258,7 +301,45 @@ void moveFileWrapper(const string &src_name, const string &dst_name) {
         cout << "Error while moving file from " << src_name << " to " << dst_name << endl;
     }
 }
+void setFileTimeWrapper(const HANDLE &file_handle){
+
+
+
+}
+void getFileInfoByHandle(const HANDLE &file_handle) {
+
+
+    auto info = new BY_HANDLE_FILE_INFORMATION();
+    BOOL t = GetFileInformationByHandle(file_handle, info);
+    if (!t) {
+        cerr << "Error while getting file info from handle" << endl;
+    } else {
+        auto systime_create = new SYSTEMTIME();
+        auto systime_access = new SYSTEMTIME();
+        auto systime_write = new SYSTEMTIME();
+
+        attrDecoder(info->dwFileAttributes);
+
+        FileTimeToSystemTime(&info->ftCreationTime, systime_create);
+        cout << "Creation time = " << SysTimeToStr(systime_create) << endl;
+
+        FileTimeToSystemTime(&info->ftLastAccessTime, systime_access);
+        cout << "Last access time = " << SysTimeToStr(systime_access) << endl;
+
+        FileTimeToSystemTime(&info->ftLastWriteTime, systime_write);
+        cout << "Last write time = " << SysTimeToStr(systime_write) << endl;
+
+        cout << "Volume serial number is " << info->dwVolumeSerialNumber << endl;
+        delete (systime_create);
+        delete (systime_create);
+        delete (systime_create);
+    }
+
+}
 
 int main() {
     getFileAttr("../baka.txt");
+    auto handle = createFileWrapper("../tram.txt");
+    getFileInfoByHandle(handle);
+//    cout << GetLastError() << endl;
 }
