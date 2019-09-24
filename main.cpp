@@ -328,7 +328,7 @@ void setFileTimeWrapper(const HANDLE &file_handle) {
     if (!t){
         cout << "Error while setting file time " << endl;
     }
-
+    delete sys_time;
 }
 
 void getFileInfoByHandle(const HANDLE &file_handle) {
@@ -359,26 +359,30 @@ void getFileInfoByHandle(const HANDLE &file_handle) {
         delete (systime_create);
         delete (systime_create);
     }
-
+    delete(info);
 }
 
 int main() {
     //getFileAttr("../baka.txt");
-     bool work = true;
+
+    setlocale(LC_CTYPE, "rus");
+    bool work = true;
     while (work){
-        cout << "Доступные действия:" << endl;
-        cout << "Введите 1, чтобы вывести список дисков." << endl;
-        cout << "Введите 2, чтобы вывести подробную информацию об определенном диске." << endl;
-        cout << "Введите 3, чтобы создать каталог." << endl;
-        cout << "Введите 4, чтобы удалить каталог." << endl;
-        cout << "Введите 5, чтобы создать файл." << endl;
-        cout << "Введите 6, чтобы копировать файл." << endl;
-        cout << "Введите 7, чтобы переместить файл." << endl;
-        cout << "Введите 8, чтобы вывести атрибуты файла." << endl;
-        cout << "Введите 9, чтобы задать атрибуты файла." << endl;
-        cout << "Введите 10, чтобы получить информацию о файле по его handle." << endl;
-        cout << "Введите 11, обновить время обращения в файлу и время последней записи в файл." << endl;
-        cout << "Чтобы выйти нажмите введите любую другую цифру" << endl;
+        cout << "------------------------------------------------------------------------------------------" << endl;
+        cout << "Available actions:" << endl;
+        cout << " Enter 1 to list the drives."<< endl;
+        cout << " Enter 2 to display detailed information about a specific drive."<< endl;
+        cout << " Enter 3 to create the directory."<< endl;
+        cout << " Enter 4 to delete the directory."<< endl;
+        cout << " Enter 5 to create the file."<< endl;
+        cout << " Enter 6 to copy the file."<< endl;
+        cout << " Enter 7 to move the file."<< endl;
+        cout << " Enter 8 to display the file attributes."<< endl;
+        cout << " Enter 9 to set the file attributes."<< endl;
+        cout << " Enter 10 to get information about the file by its handle."<< endl;
+        cout << " Enter 11, update the time the file was accessed and the time the file was last written to."<< endl;
+        cout << "To exit press enter any other digit" << endl;
+        cout << "------------------------------------------------------------------------------------------" << endl;
         unsigned i;
         string path1;
         string path2;
@@ -390,16 +394,17 @@ int main() {
             case 2 :
                 showDriveInfoM(); break;
             case 3 :
-                cout << "Введите полный путь до директории: " << endl;
+                cout << "Enter the full path to the directory: " << endl;
                 cin >> path1;
                 createDir(path1);
                 break;
             case 4 :
-                cout << "Введите полный путь до директории: " << endl;
+                cout << "Enter the full path to the directory: " << endl;
                 cin >> path1;
                 removeDir(path1);
+                break;
             case 5 :
-                cout << "Введите полный путь до файла: " << endl;
+                cout << "Enter the full path to the file: " << endl;
                 cin >> path1;
                 tmp_handle = createFileWrapper(path1);
                 cout << "handle: " << tmp_handle << endl;
@@ -443,6 +448,9 @@ int main() {
                 work = false;
                 break;
         }
+
+
+
 
     }
 //    cout << GetLastError() << endl;
