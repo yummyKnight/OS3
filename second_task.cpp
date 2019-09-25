@@ -37,7 +37,7 @@ void readFileWrapper(/*const HANDLE handle, string disk_name*/) {
     DWORD SectorsPerCluster;
     DWORD BytesPerSector;
     BOOL t = GetDiskFreeSpace(
-            "h:\\",
+            "c:\\",
             &SectorsPerCluster, // <--
             &BytesPerSector, // <--
             nullptr,
@@ -66,7 +66,7 @@ void readFileWrapper(/*const HANDLE handle, string disk_name*/) {
         cout << "Error file reading file" << endl;
     }
     cout << "File info:" << endl;
-    cout << info << endl;
+    cout << string(info) << endl;
 
     CloseHandle(new_handle);
     delete[](info);
@@ -77,7 +77,7 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
     DWORD SectorsPerCluster;
     DWORD BytesPerSector;
     BOOL t = GetDiskFreeSpace(
-            "h:\\",
+            "c:\\",
             &SectorsPerCluster, // <--
             &BytesPerSector, // <--
             nullptr,
@@ -93,32 +93,33 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
     string info;
     HANDLE new_handle = CreateFileA(
             file_name.c_str(),              // file name
-            GENERIC_READ | GENERIC_WRITE,   //DesiredAccess
+            GENERIC_WRITE,   //DesiredAccess
             0,                              // share access
             nullptr,                        //SecurityAttributes
             OPEN_EXISTING,                  //CreationDisposition
-            FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED,          //FlagsAndAttributes
+            FILE_FLAG_OVERLAPPED,          //FlagsAndAttributes
             nullptr
     );
     OVERLAPPED overlapped;
+    overlapped.hEvent = new_handle;
 //    Append info to file
 //    overlapped.Offset = 0xFFFFFFFF;
 //    overlapped.OffsetHigh = 0xFFFFFFFF;
 //
-    cout << "Enter info to write:" << endl;
-    cin >> info;
-    t = WriteFileEx(new_handle, info.c_str(), info.length() * 2, &overlapped,
-                    (LPOVERLAPPED_COMPLETION_ROUTINE) FileWrittenCallback);
+    DWORD buffer;
+    const unsigned l = SectorsPerCluster * BytesPerSector;
+    char str[] = "Vasya Pupkin";
+    t = WriteFile(new_handle,str ,strlen(str) , NULL, &overlapped);
     if (!t) {
         cout << "Error file writing file" << endl;
     } else {
         cout << "Info wrote in file" << endl;
     }
-
     CloseHandle(new_handle);
 }
 
 int main() {
     writeFileWrapper();
+    std::cout << GetLastError() << '\n';
     //readFileWrapper();
 }
