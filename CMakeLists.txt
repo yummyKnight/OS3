@@ -5,3 +5,4 @@ set(CMAKE_CXX_STANDARD 11)
 
 add_executable(windows_tets main.cpp second_task.cpp)
 add_executable(second_task second_task.cpp)
+add_executable(main main.cpp)
