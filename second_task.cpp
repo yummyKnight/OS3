@@ -2,6 +2,7 @@
 // Created by Admin on 22.09.2019.
 //
 #include <windows.h>
+#include <winbase.h>
 #include <string>
 #include <iostream>
 #include <malloc.h>
@@ -86,7 +87,7 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
     DWORD SectorsPerCluster;
     DWORD BytesPerSector;
     BOOL t = GetDiskFreeSpace(
-            "c:\\",
+            "h:\\",
             &SectorsPerCluster, // <--
             &BytesPerSector, // <--
             nullptr,
@@ -97,14 +98,15 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
     }
     cout << SectorsPerCluster * BytesPerSector << endl;
     cout << "Enter file name to write text to it" << endl;
-    string file_name;
-    cin >> file_name;
+    string file_name = "../vasya.txt";
+//    cin >> file_name;
+
     string info;
 
     HANDLE new_handle = CreateFileA(
             file_name.c_str(),              // file name
             GENERIC_WRITE | GENERIC_READ,   //DesiredAccess
-            0,                              // share access
+            FILE_SHARE_READ | FILE_SHARE_WRITE,                              // share access
             nullptr,                        //SecurityAttributes
             OPEN_EXISTING,                  //CreationDisposition
             FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED | FILE_ATTRIBUTE_NORMAL,          //FlagsAndAttributes
@@ -118,24 +120,33 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
 //
     DWORD buffer;
     const unsigned SECTOR_SIZE = SectorsPerCluster * BytesPerSector;
-    char buf[] = "Vasya Pupkin";
-
+    char buf[] = "Vasya Pupkin\0";
+    char *str = static_cast<char *>(VirtualAlloc(nullptr, 25, MEM_COMMIT, PAGE_READWRITE));
+    ZeroMemory(str,25);
 //    char *str = static_cast<char *>(VirtualAlloc(nullptr, SECTOR_SIZE, MEM_COMMIT, PAGE_READWRITE));
 //
-//    int counter = 0;
-//    for (auto i : string("My county is super duper")) {
-//        str[counter++] = i;
+    int counter = 0;
+    for (auto i : string("My county is super duper")) {
+        str[counter++] = i;
+    }
+//    for (unsigned i = 0; i < 10; ++i) {
+//        buf[i] = 'M';
 //    }
+//    for (unsigned i = 10; i < 2 * SECTOR_SIZE - 2; ++i) {
+//        buf[i] = '\0';
+//    }
+//    buf[ 2 * SECTOR_SIZE - 2] = '\0';
 
     cout << new_handle << endl;
-    char *p = (char *) ((DWORD) (buf + SECTOR_SIZE - 1) & ~(SECTOR_SIZE - 1));
+
+//    char *p = (char *) ((DWORD) (buf + SECTOR_SIZE - 1) & ~(SECTOR_SIZE - 1));
 //    string str = "My county is super duper";
 //    t = SetFilePointerEx(new_handle,)
 //    if (!t) {
 //        cout << GetLastError() << endl;
 //        cout << "Error file writing file" << endl;
 //    }
-    t = WriteFileEx(new_handle, &p, SECTOR_SIZE, &overlapped, FileWrittenCallback);
+    t = WriteFileEx(new_handle, str, SECTOR_SIZE, &overlapped, FileWrittenCallback);
     std::cout << GetLastError() << '\n';
     if (GetOverlappedResult(new_handle, &overlapped, &buffer, TRUE)) {
         cout << "Overlapped operation successful ending" << endl;
