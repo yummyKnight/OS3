@@ -8,14 +8,21 @@
 #include <malloc.h>
 
 using namespace std;
-
+char *str = static_cast<char *>(VirtualAlloc(nullptr, 4096, MEM_COMMIT, PAGE_READWRITE));
 VOID WINAPI FileWrittenCallback(DWORD dwErrorCode, DWORD dwBytesTransferred, LPOVERLAPPED lpOverlapped) {
     if (dwErrorCode != 0) {
         cout << "CompletionRoutine: Unable to write to file! Error:" << dwErrorCode << ", AddrOverlapped: " <<
              lpOverlapped << endl;
     } else {
-        cout << "CompletionRoutine: Transferred: %u Bytes, AddrOverlapped: %p\n" << dwBytesTransferred << lpOverlapped
-             << endl;
+        cout << "CompletionRoutine: Transferred: " << dwBytesTransferred <<" Bytes, AddrOverlapped:" << lpOverlapped << endl;
+    }
+}
+VOID WINAPI CopyCallback(DWORD dwErrorCode, DWORD dwBytesTransferred, LPOVERLAPPED lpOverlapped) {
+    if (dwErrorCode != 0) {
+        cout << "CompletionRoutine: Unable to write to file! Error:" << dwErrorCode << ", AddrOverlapped: " <<
+             lpOverlapped << endl;
+    } else {
+        cout << "And now se start to write" << endl;
     }
 }
 
@@ -39,7 +46,7 @@ void readFileWrapper(/*const HANDLE handle, string disk_name*/) {
     DWORD SectorsPerCluster;
     DWORD BytesPerSector;
     BOOL t = GetDiskFreeSpace(
-            "c:\\",
+            "h:\\",
             &SectorsPerCluster, // <--
             &BytesPerSector, // <--
             nullptr,
@@ -50,8 +57,8 @@ void readFileWrapper(/*const HANDLE handle, string disk_name*/) {
     }
     cout << SectorsPerCluster * BytesPerSector << endl;
     cout << "Enter file name to read text from it" << endl;
-    string file_name;
-    cin >> file_name;
+    string file_name = "../vasya.txt";
+//    cin >> file_name;
     HANDLE new_handle = CreateFileA(
             file_name.c_str(),              // file name
             GENERIC_READ,   //DesiredAccess
@@ -63,8 +70,8 @@ void readFileWrapper(/*const HANDLE handle, string disk_name*/) {
     );
     OVERLAPPED overlapped = OVERLAPPED();
     auto l = SectorsPerCluster * BytesPerSector;
-    char *str = static_cast<char *>(VirtualAlloc(nullptr, l * 3, MEM_COMMIT, PAGE_READWRITE));
-    t = ReadFileEx(new_handle, str, l * 2, &overlapped, FileWrittenCallback);
+    char *str = static_cast<char *>(VirtualAlloc(nullptr, l, MEM_COMMIT, PAGE_READWRITE));
+    t = ReadFileEx(new_handle, str, l, &overlapped, FileWrittenCallback);
     DWORD buffer;
     if (GetOverlappedResult(new_handle, &overlapped, &buffer, TRUE)) {
         cout << "Overlapped operation successful ending" << endl;
@@ -120,22 +127,19 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
 //
     DWORD buffer;
     const unsigned SECTOR_SIZE = SectorsPerCluster * BytesPerSector;
-    char buf[] = "Vasya Pupkin\0";
-    char *str = static_cast<char *>(VirtualAlloc(nullptr, 25, MEM_COMMIT, PAGE_READWRITE));
-    ZeroMemory(str,25);
-//    char *str = static_cast<char *>(VirtualAlloc(nullptr, SECTOR_SIZE, MEM_COMMIT, PAGE_READWRITE));
+    auto br = string("My county is super duper\r\n");
+    char buf[102400];
+//    char *str = static_cast<char *>(VirtualAlloc(nullptr, br.length(), MEM_COMMIT, PAGE_READWRITE));
+    ZeroMemory(&buf,br.length());
+
 //
-    int counter = 0;
-    for (auto i : string("My county is super duper")) {
-        str[counter++] = i;
+//    int counter = 0;
+//    for (auto i : br) {
+//        str[counter++] = i;
+//    }
+    for (char & i : buf) {
+        i = 'M';
     }
-//    for (unsigned i = 0; i < 10; ++i) {
-//        buf[i] = 'M';
-//    }
-//    for (unsigned i = 10; i < 2 * SECTOR_SIZE - 2; ++i) {
-//        buf[i] = '\0';
-//    }
-//    buf[ 2 * SECTOR_SIZE - 2] = '\0';
 
     cout << new_handle << endl;
 
@@ -146,12 +150,15 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
 //        cout << GetLastError() << endl;
 //        cout << "Error file writing file" << endl;
 //    }
-    t = WriteFileEx(new_handle, str, SECTOR_SIZE, &overlapped, FileWrittenCallback);
+    cout << br.length() << endl;
+    t = WriteFileEx(new_handle, &buf, 102400 , &overlapped, (LPOVERLAPPED_COMPLETION_ROUTINE)FileWrittenCallback);
     std::cout << GetLastError() << '\n';
-    if (GetOverlappedResult(new_handle, &overlapped, &buffer, TRUE)) {
-        cout << "Overlapped operation successful ending" << endl;
+//    if (GetOverlappedResult(new_handle, &overlapped, &buffer, TRUE)) {
+//        cout << "Overlapped operation successful ending. Size of buffer is " << buffer << endl;
+//    }
+    if (SleepEx(INFINITE,TRUE) == WAIT_IO_COMPLETION){
+        cout << "Its fine\n";
     }
-
     if (!t) {
         cout << "Error file writing file" << endl;
     } else {
@@ -165,10 +172,48 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
 }
 
 // special function for async i/0
+int BlockCopying(const string& src, const string& dst, DWORD block_size=4096){
+    HANDLE src_handle = CreateFileA(
+            src.c_str(),              // file name
+            GENERIC_READ,   //DesiredAccess
+            FILE_SHARE_READ | FILE_SHARE_WRITE,                              // share access
+            nullptr,                        //SecurityAttributes
+            OPEN_EXISTING,                  //CreationDisposition
+            FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED | FILE_ATTRIBUTE_NORMAL,          //FlagsAndAttributes
+            nullptr
+    );
+    if ( (int)(src_handle) == -1){
+        cout << "Invalid src file" << endl;
+        return -1;
+    }
+    HANDLE dst_handle = CreateFileA(
+            dst.c_str(),              // file name
+            GENERIC_WRITE,   //DesiredAccess
+            FILE_SHARE_READ | FILE_SHARE_WRITE,                              // share access
+            nullptr,                        //SecurityAttributes
+            OPEN_EXISTING,                  //CreationDisposition
+            FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED | FILE_ATTRIBUTE_NORMAL,          //FlagsAndAttributes
+            nullptr
+    );
 
+    if ( (int)(dst_handle) == -1){
+        cout << "Invalid dst file" << endl;
+        return -1;
+    }
+    DWORD src_size = GetFileSize(src_handle,NULL);
+    cout << src_size << endl;
+    OVERLAPPED overlapped1;
+    OVERLAPPED overlapped2;
+    DWORD t = ReadFileEx(src_handle, str, block_size, &overlapped1, (LPOVERLAPPED_COMPLETION_ROUTINE)CopyCallback);
+    DWORD t1 = WriteFileEx(dst_handle, str, block_size , &overlapped2, (LPOVERLAPPED_COMPLETION_ROUTINE)FileWrittenCallback);
+    cout << t << " " << t1 << endl;
+//    for (DWORD i = 0; i < src_size; i = i + block_size) {
+//
+//    }
+}
 
 int main() {
-    writeFileWrapper();
-
-    //readFileWrapper();
+    BlockCopying("../src.txt", "../vasya.txt");
+//    writeFileWrapper();
+//    readFileWrapper();
 }
