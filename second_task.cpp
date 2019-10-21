@@ -185,6 +185,7 @@ void writeFileWrapper(/*const HANDLE handle, string disk_name*/) {
 
 // special function for async i/0
 void BlockCopying(const string &src, const string &dst) {
+
     HANDLE src_handle = CreateFileA(
             src.c_str(),                                                           // file name
             GENERIC_READ,                                                          //DesiredAccess
@@ -211,7 +212,8 @@ void BlockCopying(const string &src, const string &dst) {
         return;
     }
 
-    DWORD src_size = GetFileSize(src_handle, NULL);
+    __int64 src_size = GetFileSize(src_handle, NULL);
+
     const DWORD overlapped_count = src_size == cluster_size ? src_size / cluster_size : src_size / cluster_size + 1;
     vector<OVERLAPPED> overlapped_vector(overlapped_count);
 
@@ -245,6 +247,12 @@ void BlockCopying(const string &src, const string &dst) {
         overlapped_vector.at(i).OffsetHigh = cur_pos.HighPart;
         DWORD t = ReadFileEx(src_handle, info[i], cluster_size, &overlapped_vector.at(i),
                              (LPOVERLAPPED_COMPLETION_ROUTINE) CopyCallback);
+        if(!t){
+            cout << "Error while reading file" << endl;
+            if (GetLastError() == ERROR_HANDLE_EOF){
+                cout << "EOF!!!" << endl;
+            }
+        }
 //        SleepEx(INFINITE, TRUE);
        if(debug){cout << " Read t codes :" << t << endl;}
         if (i == t_overlapped_operations_count) {
@@ -253,6 +261,7 @@ void BlockCopying(const string &src, const string &dst) {
             SleepEx(INFINITE, TRUE);
         }
     }
+    cout << "File size: " << src_size << "Position :" << cur_pos.QuadPart << endl;
     if (sync_times * overlapped_operations_count < overlapped_count && overlapped_operations_count != 0) {
         if(debug) {cout << "Extra syncs:" << endl;}
         sync_times++;
@@ -271,7 +280,9 @@ void BlockCopying(const string &src, const string &dst) {
     cout << "Time (in seconds): " << time << endl;
     cout << "Speed ( kb in seconds ): " << (src_size / time / 1024) << endl;
     cout << "Amount of syncs: " << sync_times << endl;
-    cout << info[overlapped_count - 1] << endl;
+//    cout << info[overlapped_count - 1] << endl;
+    cout << endl;
+//    cout << info[overlapped_count - 2] << endl;
 
     //    for (DWORD i = 0; i < src_size; i = i + block_size) {
     //
@@ -298,6 +309,7 @@ int main() {
         overlapped_operations_count = oc;
         for (cluster_size = 4096; cluster_size < 32768; cluster_size += 4096) {
             for (const auto& a : v) {
+                cout << "Cluster size: " << cluster_size << " Number of async operation: " << oc << endl;
                 global_i = 0;
                 experiment(a);
                 cout << endl;

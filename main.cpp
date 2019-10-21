@@ -411,36 +411,36 @@ int main() {
                 CloseHandle(tmp_handle);
                 break;
             case 6 :
-                cout << "Введите полный путь до файла, который нужно скопировать: " << endl;
+                cout << "Enter the full path to the file you want to copy: " << endl;
                 cin >> path1;
-                cout << "Введите путь, куда нужно скопировать файл(при необходимости его новое имя): " << endl;
+                cout << "Enter the path where you want to copy the file(if necessary, its new name): " << endl;
                 cin >> path2;
                 copyFileWrapper(path1,path2);
                 break;
             case 7 :
-                cout << "Введите полный путь до файла, который нужно переместить: " << endl;
+                cout << "Enter the full path to the file you want to move: " << endl;
                 cin >> path1;
-                cout << "Введите путь, куда нужно переместить файл(при необходимости его новое имя): " << endl;
+                cout << "Enter the path where you want to move the file(if necessary, its new name): " << endl;
                 cin >> path2;
                 moveFileWrapper(path1,path2);
                 break;
             case 8 :
-                cout << "Введите полный путь до файла, для которого нужно вывести атрибуты: " << endl;
+                cout << "Enter the full path to the file for which you want to display attributes: " << endl;
                 cin >> path1;
                 getFileAttr(path1);
                 break;
             case 9 :
-                cout << "Введите полный путь до файла, которому нужно добавить атрибут: " << endl;
+                cout << "Enter the full path to the file to which you want to add the attribute: " << endl;
                 cin >> path1;
                 setFileAttr(path1);
                 break;
             case 10 :
-                cout << "Введите handle файла, для которого нужно отобразить информацию: " << endl;
+                cout << "Enter the handle of the file for which you want to display the information: " << endl;
                 cin >> tmp_handle;
                 getFileInfoByHandle(tmp_handle);
                 break;
             case 11 :
-                cout << "Введите handle файла, для которого нужно пометь время создания и последнего обращения на текущее: " << endl;
+                cout << "Enter the handle of the file for which you want to mark the time of creation and last access to the current: " << endl;
                 cin >> tmp_handle;
                 setFileTimeWrapper(tmp_handle);
                 break;

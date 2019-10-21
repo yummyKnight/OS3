@@ -20,6 +20,15 @@ map<string , DWORD > protectionOptions = {
         {"7: PAGE_READWRITE", PAGE_READWRITE},
         {"8: PAGE_WRITECOPY", PAGE_WRITECOPY},
 };
+string determineProtection(DWORD protection){
+    for (const auto& a: protectionOptions){
+        if (a.second == protection){
+            auto tmp = a.first;
+            tmp.erase(0,3);
+            return tmp;
+        }
+    }
+}
 void WrapperGetSystemInfo(){
     SYSTEM_INFO systemInfo;
     GetSystemInfo(&systemInfo);
@@ -98,14 +107,7 @@ void WrapperCheckMemoryPart(PVOID address){
     }
 
     cout << "The access protection of the pages in the region." << endl;
-    for (const auto& a: protectionOptions){
-        if (a.second == basicInformation.Protect){
-            auto tmp = a.first;
-            tmp.erase(0,3);
-            cout << tmp << endl;
-            break;
-        }
-    }
+    cout <<  determineProtection(basicInformation.Protect) << endl;
     cout << "The type of pages in the region." << endl;
     switch(basicInformation.State){
         case MEM_IMAGE: cout << "MEM_IMAGE type" << endl;
@@ -119,6 +121,7 @@ void WrapperCheckMemoryPart(PVOID address){
     }
 
 }
+
 void WrapperVirtualAllocSeparately(DWORD size, PVOID address=NULL){
     PVOID ptr = VirtualAlloc(address,size,MEM_RESERVE,PAGE_EXECUTE_READWRITE);
     if(!ptr){
@@ -162,36 +165,44 @@ void WrapperVirtualProtect(PVOID address, DWORD size){
     DWORD prev_sec;
     DWORD sec_var = 0;
     int i = 0;
-
+    for (const auto& a : protectionOptions){
+        cout << a.first << endl;
+    }
+    cout << "Choose memory protection constant, which you what add to page." << endl;
+    bool flag = true;
     do {
-        for (const auto& a : protectionOptions){
-            cout << a.first << endl;
-        }
-        cout << "Choose memory protection constants, which you what add to page. Type 0 to end" << endl;
         cin >> i;
-        try {
-            if(!i){
-                break;
-            }
-            for (const auto& a : protectionOptions) {
-                if(a.first.at(0) == i + '0'){
-                    sec_var |= a.second;
-                }
+        for (const auto& a : protectionOptions) {
+            if(a.first.at(0) == i + '0'){
+                sec_var |= a.second;
+                flag = false;
             }
         }
-        catch(out_of_range &e) {
-            cout << "Wrong number. Try another" << endl;
+        if (flag){
+            cout << "Wrong number, Try another" << endl;
         }
-    } while(true);
+
+    } while(flag);
     if(!VirtualProtect(address,size, sec_var, &prev_sec)){
         cout << "Error in VirtualProtect " << endl;
         cout << GetLastError() << endl;
     }
-    WrapperCheckMemoryPart(address);
+    else{
+        cout << "Protection constant successfully changed" << endl;
+        cout << "Prev constant " << determineProtection(prev_sec) << endl;
+    }
+    cout << "Checking: " << endl;
+
+    if(!VirtualProtect(address,size, prev_sec, &prev_sec)){
+        cout << "Error in VirtualProtect " << endl;
+        cout << GetLastError() << endl;
+    }
+    else{
+        cout << "Protection constant successfully changed" << endl;
+        cout << "Prev constant " << determineProtection(prev_sec) << endl;
+    }
 }
 int main(){
-    auto ptr = VirtualAlloc(nullptr,1000,MEM_RESERVE,PAGE_READWRITE);
-    cout << ptr << endl;
     auto* dwPointer = new DWORD;
     *dwPointer = 2;
     WrapperVirtualProtect(dwPointer,sizeof(DWORD));
