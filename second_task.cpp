@@ -9,13 +9,15 @@
 #include <vector>
 #include <chrono>
 #include <fstream>
+#include <list>
+#include <stdexcept>
 
 using namespace std;
 const bool debug = false;
-DWORD cluster_size = 4096;
-char **info;
+DWORD cluster_size = 24576;
+vector<char *> info;
 DWORD global_i = 0;
-DWORD overlapped_operations_count = 0;
+DWORD overlapped_operations_count = 2;
 
 VOID WINAPI FileWrittenCallback(DWORD dwErrorCode, DWORD dwBytesTransferred, LPOVERLAPPED lpOverlapped) {
     if (dwErrorCode != 0) {
@@ -35,9 +37,16 @@ VOID WINAPI CopyCallback(DWORD dwErrorCode, DWORD dwBytesTransferred, LPOVERLAPP
         OVERLAPPED overlapped;
         overlapped.Offset = lpOverlapped->Offset;
         overlapped.OffsetHigh = lpOverlapped->OffsetHigh;
-        DWORD t = WriteFileEx(lpOverlapped->hEvent, info[global_i], cluster_size, &overlapped,
-                              (LPOVERLAPPED_COMPLETION_ROUTINE) FileWrittenCallback);
-        if(debug) {cout << "Write t codes: " << t << endl;}
+
+        try {
+//            cout << "global i " << global_i << endl;
+            WriteFileEx(lpOverlapped->hEvent, info.at(global_i), cluster_size, &overlapped,
+                        (LPOVERLAPPED_COMPLETION_ROUTINE) FileWrittenCallback);
+        }
+        catch(out_of_range  &e){
+            cout << "OUT" << endl;
+        }
+        //if(debug) {cout << "Write t codes: " << t << endl;}
 //        cout << t << endl;
         global_i++;
         // DWORD t1 = WriteFileEx(dst_handle, &str, block_size , &overlapped2, (LPOVERLAPPED_COMPLETION_ROUTINE)FileWrittenCallback);
@@ -222,11 +231,9 @@ void BlockCopying(const string &src, const string &dst) {
     }
 
     cout << "Src size: " << src_size << " Overlapped_count: " << overlapped_count << endl;
-    info = new char *[overlapped_count];
-
     for (size_t i = 0; i < overlapped_count; i++) {
-        info[i] = new char[cluster_size];
-        ZeroMemory(info[i], cluster_size);
+        info.push_back(new char[cluster_size]);
+//        ZeroMemory(info[i], cluster_size);
     }
 
     LARGE_INTEGER cur_pos;
@@ -245,7 +252,7 @@ void BlockCopying(const string &src, const string &dst) {
         cur_pos.QuadPart = i * cluster_size;
         overlapped_vector.at(i).Offset = cur_pos.LowPart;
         overlapped_vector.at(i).OffsetHigh = cur_pos.HighPart;
-        DWORD t = ReadFileEx(src_handle, info[i], cluster_size, &overlapped_vector.at(i),
+        DWORD t = ReadFileEx(src_handle, info.at(i), cluster_size, &overlapped_vector.at(i),
                              (LPOVERLAPPED_COMPLETION_ROUTINE) CopyCallback);
         if(!t){
             cout << "Error while reading file" << endl;
@@ -254,19 +261,20 @@ void BlockCopying(const string &src, const string &dst) {
             }
         }
 //        SleepEx(INFINITE, TRUE);
-       if(debug){cout << " Read t codes :" << t << endl;}
+        if(debug){cout << " Read t codes :" << t << endl;}
         if (i == t_overlapped_operations_count) {
             sync_times++;
             t_overlapped_operations_count += overlapped_operations_count;
             SleepEx(INFINITE, TRUE);
+//            cout << "Sync:" << sync_times << endl;
         }
     }
-    cout << "File size: " << src_size << "Position :" << cur_pos.QuadPart << endl;
     if (sync_times * overlapped_operations_count < overlapped_count && overlapped_operations_count != 0) {
         if(debug) {cout << "Extra syncs:" << endl;}
         sync_times++;
         SleepEx(INFINITE, TRUE);
     }
+    cout << "File size: " << src_size << " Position :" << cur_pos.QuadPart << endl;
     auto end = chrono::high_resolution_clock::now();
     cout << "Number of operations that needed extra sync: "
          << overlapped_count - (sync_times - 1) * overlapped_operations_count << endl;
@@ -289,12 +297,12 @@ void BlockCopying(const string &src, const string &dst) {
     //    }
     CloseHandle(src_handle);
     CloseHandle(dst_handle);
-    for (int j = 0; j < overlapped_count; ++j) {
-        delete [](info[j]);
+    for (char * t : info) {
+        delete [](t);
     }
-    delete [](info);
+    info.clear();
 }
-void experiment(const string src){
+void experiment(const string &src){
     std::ofstream ofs;
     ofs.open("../vasya.txt", std::ofstream::out | std::ofstream::trunc);
     ofs.close();
@@ -302,12 +310,13 @@ void experiment(const string src){
 }
 int main() {
     vector<string> v = {"../dataset/100000"};
-    vector<DWORD > v_int = {1,2,4,8,12,16,32};
+//    vector<DWORD > v_int = {1,2,4,8,12,16,32};
+    vector<DWORD > v_int = {8};
     cluster_size = 4096;
     overlapped_operations_count = 0;
     for (auto oc : v_int) {
         overlapped_operations_count = oc;
-        for (cluster_size = 4096; cluster_size < 32768; cluster_size += 4096) {
+        for (cluster_size = 28672; cluster_size < 32768; cluster_size += 4096) {
             for (const auto& a : v) {
                 cout << "Cluster size: " << cluster_size << " Number of async operation: " << oc << endl;
                 global_i = 0;
@@ -316,6 +325,7 @@ int main() {
             }
         }
     }
+//    BlockCopying("../dataset/100000", "../vasya.txt");
     //    writeFileWrapper();
     //    readFileWrapper();
 }
