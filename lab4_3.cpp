@@ -37,11 +37,11 @@ int main()
       return 1;
    }
    printf("Result:\n");
-   printf("%s", pBuf);
+   printf("%s\n", pBuf);
 
    UnmapViewOfFile(pBuf);
 
    CloseHandle(hMapFile);
-
+   system("pause");
    return 0;
 }

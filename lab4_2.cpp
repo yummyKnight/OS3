@@ -2,12 +2,13 @@
 // Created by Admin on 21.10.2019.
 //
 #include <windows.h>
+#include <string>
 #include <cstdio>
 #include <conio.h>
 #include <tchar.h>
 #include <iostream>
 TCHAR szName[]=TEXT("Local\\MyFileMappingObject");
-TCHAR fileName[]=TEXT("../timon.txt");
+TCHAR fileName[]=TEXT("timon.txt");
 using namespace std;
 int main()
 {
@@ -40,7 +41,7 @@ int main()
     }
     string info;
     cout << "Enter string to write to file. (256 characters max)" << endl;
-    cin >> info;
+    getline(cin,info);
     char msg[BUFSIZ];
     ZeroMemory(msg,BUFSIZ);
     strcpy(msg, info.c_str());
@@ -50,6 +51,8 @@ int main()
                                   0,
                                   BUFSIZ);
 
+    cout << "info in msg: " <<  info << endl; 
+    cout << "Address of mapped file: " <<  (void *)pBuf << endl;
     if (pBuf == NULL)
     {
         _tprintf(TEXT("Could not map view of file (%d).\n"),
@@ -67,6 +70,5 @@ int main()
     system("pause");
     UnmapViewOfFile(pBuf);
     CloseHandle(mapping_handle);
-
-    return 0;
 }
+
