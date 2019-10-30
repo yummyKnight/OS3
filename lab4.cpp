@@ -204,11 +204,11 @@ void WrapperVirtualAllocate(const string &info, PVOID address = NULL)
     cout << "Info in ptr : " << ptr << endl;
     cout << "Press any key to free memory" << endl;
     system("pause");
-    BOOL t = VirtualFree(ptr, 0, MEM_RELEASE);
-    if (!t)
-    {
-        cout << "Something went wrong in memory RELEASing" << endl;
-    }
+    // BOOL t = VirtualFree(ptr, 0, MEM_RELEASE);
+    // if (!t)
+    // {
+    //     cout << "Something went wrong in memory RELEASing" << endl;
+    // }
 }
 void WrapperVirtualProtect(PVOID address, DWORD size)
 {

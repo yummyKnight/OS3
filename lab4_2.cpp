@@ -8,7 +8,7 @@
 #include <tchar.h>
 #include <iostream>
 TCHAR szName[]=TEXT("Local\\MyFileMappingObject");
-TCHAR fileName[]=TEXT("timon.txt");
+TCHAR fileName[]=TEXT("test.txt");
 using namespace std;
 int main()
 {
